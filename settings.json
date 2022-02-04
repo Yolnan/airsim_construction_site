@@ -1,7 +1,7 @@
 {
   "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
   "SettingsVersion": 1.2,
-  "SimMode": "Multirotor",
+  "SimMode": "ComputerVision",
   "CameraDefaults": {
     "CaptureSettings": [
       {
@@ -30,15 +30,7 @@
     "Roll": 0,
     "Yaw": 0
   },
-  "Vehicles": {
-    "Drone2": {
-      "VehicleType": "SimpleFlight",
-      "X": 0,
-      "Y": 0,
-      "Z": 0,
-      "Yaw": 0
-    }
-  },
+
   "Cameras": [
     {
       "CameraName": "0",
