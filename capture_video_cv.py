@@ -3,7 +3,7 @@
 # This is modified based on cv_mode.py
 
 import sys
-sys.path.append("./AirSim/PythonClient/computer_vision")
+sys.path.append("../AirSim/PythonClient/computer_vision")
 # from pynput import Key, Listener, KeyCode
 import setup_path
 import airsim
@@ -13,7 +13,8 @@ import os
 import time
 import math
 import tempfile
-
+from IPython import embed
+import scipy.spatial.transform as tfm
 
 
 
@@ -50,36 +51,39 @@ all_responses = []
 
 while end-start < video_time:
     responses = client.simGetImages([
-        airsim.ImageRequest("0", airsim.ImageType.DepthVis),
+        airsim.ImageRequest("0", airsim.ImageType.DepthPlanar),
         airsim.ImageRequest("0", airsim.ImageType.Segmentation),
         airsim.ImageRequest("0", airsim.ImageType.Scene)])
     all_responses.append(responses)
     end = time.time()
     print("a frame has been captured, time: ", end, "s")
+    print("quit for test")
+    break
+embed()
 
-print(">>>>>>>>>>>>>>>>>>>>>>>The recording has been stopped<<<<<<<<<<<<<<<<<<<<<<<<<")
-if not os.path.isdir(os.path.join(tmp_dir,"type0")):
-    os.mkdir(os.path.join(tmp_dir,"type0"))
-if not os.path.isdir(os.path.join(tmp_dir,"type1")):
-    os.mkdir(os.path.join(tmp_dir,"type1"))
-if not os.path.isdir(os.path.join(tmp_dir,"type2")):
-    os.mkdir(os.path.join(tmp_dir,"type2"))
-for i, responses in enumerate(all_responses):
-    filename = [os.path.join(tmp_dir,"type0", "frame_" + str(i) +"_type_0"),os.path.join(tmp_dir,"type1", "frame_" + str(i) +"_type_1"),os.path.join(tmp_dir,"type2", "frame_" + str(i) +"_type_2")]
-    for j,response in enumerate(responses):
+# print(">>>>>>>>>>>>>>>>>>>>>>>The recording has been stopped<<<<<<<<<<<<<<<<<<<<<<<<<")
+# if not os.path.isdir(os.path.join(tmp_dir,"type0")):
+#     os.mkdir(os.path.join(tmp_dir,"type0"))
+# if not os.path.isdir(os.path.join(tmp_dir,"type1")):
+#     os.mkdir(os.path.join(tmp_dir,"type1"))
+# if not os.path.isdir(os.path.join(tmp_dir,"type2")):
+#     os.mkdir(os.path.join(tmp_dir,"type2"))
+# for i, responses in enumerate(all_responses):
+#     filename = [os.path.join(tmp_dir,"type0", "frame_" + str(i) +"_type_0"),os.path.join(tmp_dir,"type1", "frame_" + str(i) +"_type_1"),os.path.join(tmp_dir,"type2", "frame_" + str(i) +"_type_2")]
+#     for j,response in enumerate(responses):
         
-        if response.pixels_as_float:
-            # print("Type %d, size %d, pos %s" % (response.image_type, len(response.image_data_float), pprint.pformat(response.camera_position)))
-            airsim.write_pfm(os.path.normpath(filename[j] + '.pfm'), airsim.get_pfm_array(response))
-        else:
-            # print("Type %d, size %d, pos %s" % (response.image_type, len(response.image_data_uint8), pprint.pformat(response.camera_position)))
-            airsim.write_file(os.path.normpath(filename[j] + '.png'), response.image_data_uint8)
+#         if response.pixels_as_float:
+#             # print("Type %d, size %d, pos %s" % (response.image_type, len(response.image_data_float), pprint.pformat(response.camera_position)))
+#             airsim.write_pfm(os.path.normpath(filename[j] + '.pfm'), airsim.get_pfm_array(response))
+#         else:
+#             # print("Type %d, size %d, pos %s" % (response.image_type, len(response.image_data_uint8), pprint.pformat(response.camera_position)))
+#             airsim.write_file(os.path.normpath(filename[j] + '.png'), response.image_data_uint8)
 
-        pose = client.simGetVehiclePose()
-        # pp.pprint(pose)
+#         pose = client.simGetVehiclePose()
+#         # pp.pprint(pose)
 
-        # time.sleep(3)
-print(">>>>>>>>>>>>>>>>>>>>>>>The images are saved now<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+#         # time.sleep(3)
+# print(">>>>>>>>>>>>>>>>>>>>>>>The images are saved now<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 
 # currently reset() doesn't work in CV mode. Below is the workaround
 # client.simSetVehiclePose(airsim.Pose(airsim.Vector3r(0, 0, 0), airsim.to_quaternion(0, 0, 0)), True)
