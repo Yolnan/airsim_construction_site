@@ -50,7 +50,7 @@ all_responses = []
 
 while end-start < video_time:
     responses = client.simGetImages([
-        airsim.ImageRequest("0", airsim.ImageType.DepthVis),
+        airsim.ImageRequest("0", airsim.ImageType.DepthPlanar),
         airsim.ImageRequest("0", airsim.ImageType.Segmentation),
         airsim.ImageRequest("0", airsim.ImageType.Scene)])
     all_responses.append(responses)
