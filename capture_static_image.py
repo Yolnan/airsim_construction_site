@@ -67,10 +67,12 @@ def extract_save_image(cnt, save_folder_path):
     depth = infos[0]
     seg = infos[1]
     rgb = infos[2]
-
     img_rgb, img_depth = getArrayFromAirsimImage(rgb, depth)
     cv2.imwrite(
         f"{save_folder_path}{file_deli}rgb{file_deli}{cnt}.png", img_rgb)
+    depth_filter_range = 60  # meter
+    img_depth = np.where(img_depth > depth_filter_range, 0., img_depth)
+    img_depth *= 1000  # save depth image using millimeter
     cv2.imwrite(
         f"{save_folder_path}{file_deli}depth{file_deli}{cnt}.png", img_depth.astype(np.uint16))
 
@@ -108,8 +110,8 @@ def generate_object_data(object_index):
     exit_flag = False
     shuffle_flag = True
 
-    camera_num = 120
-    vehicle_num = 5
+    camera_num = 50
+    vehicle_num = 4
     index_list = np.array([x for x in range(camera_num * vehicle_num)])
     if shuffle_flag:
         np.random.shuffle(index_list)
@@ -121,7 +123,7 @@ def generate_object_data(object_index):
         if exit_flag:
             break
         center_cam_ori_x = 0
-        center_cam_ori_y = np.random.uniform() * np.pi * -0.4
+        center_cam_ori_y = np.random.uniform() * np.pi * (-0.3) - 0.1
         center_cam_ori_z = np.random.uniform() * np.pi * 2
 
         center_cam_ori = tfm.euler.euler2mat(
@@ -141,7 +143,7 @@ def generate_object_data(object_index):
                                          airsim.Quaternionr(camera_quat[1], camera_quat[2], camera_quat[3], camera_quat[0]))
         client.simSetCameraPose(camera_name, airsim_camera_pose)
         print(f"Setting camera pose {i}: {base2cam}")
-        time.sleep(5)
+        time.sleep(3)
         actual_cam_pose = airsimPoseToMat(
             client.simGetCameraInfo(camera_name).pose)
         print(f"Actual camera pose {i}: {actual_cam_pose}")
@@ -155,7 +157,7 @@ def generate_object_data(object_index):
         actual_center_pos = [actual_cam_pose[0][3] + dx,
                              actual_cam_pose[1][3] + dy, actual_cam_pose[2][3] + dz]
 
-        for j in range(vehicle_num):
+        for _ in range(vehicle_num):
             x_displace = np.random.uniform() * 4
             y_displace = np.random.uniform() * 4
             rz = np.random.uniform() * np.pi * 2
