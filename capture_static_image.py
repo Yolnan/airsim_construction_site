@@ -48,7 +48,7 @@ client = airsim.VehicleClient()
 client.confirmConnection()
 
 camera_name = "0"
-object_name_ls = ["SM_AsphaltRoller3", "SM_ForkLift5", "SM_ForkLift3"]
+object_name_ls = ["SM_ForkLift6"] #"SM_ForkLift3", "SM_ForkLift6", SM_AsphaltRoller3
 
 file_deli = '\\'
 
@@ -77,9 +77,11 @@ def extract_save_image(cnt, save_folder_path):
         f"{save_folder_path}{file_deli}depth{file_deli}{cnt}.png", img_depth.astype(np.uint16))
 
     img_seg, img_depth = getArrayFromAirsimImage(seg, depth)
+    # print("img_seg: ", img_seg.shape)
     # [164,  41, 253] for roller, [242, 162, 90] for fork
     label1 = np.array([164,  41, 253])
-    label2 = np.array([242, 162, 90])
+    # label2 = np.array([242, 162, 90])
+    label2 = np.array([250, 20, 234])
     mask = np.ma.getmaskarray(np.ma.masked_equal(
         img_seg, label1)) | np.ma.getmaskarray(np.ma.masked_equal(img_seg, label2))
     mask_img = mask[:, :, 0] * img_seg[:, :, 0]
@@ -91,7 +93,7 @@ def extract_save_image(cnt, save_folder_path):
 airsim.wait_key(
     'Press any key to start loop')
 
-embed()
+# embed()
 
 
 def generate_object_data(object_index):
@@ -110,8 +112,8 @@ def generate_object_data(object_index):
     exit_flag = False
     shuffle_flag = True
 
-    camera_num = 50
-    vehicle_num = 4
+    camera_num = 50 #100
+    vehicle_num = 4 #10
     index_list = np.array([x for x in range(camera_num * vehicle_num)])
     if shuffle_flag:
         np.random.shuffle(index_list)
@@ -122,12 +124,12 @@ def generate_object_data(object_index):
     for i in range(camera_num):
         if exit_flag:
             break
-        center_cam_ori_x = 0
-        center_cam_ori_y = np.random.uniform() * np.pi * (-0.3) - 0.1
-        center_cam_ori_z = np.random.uniform() * np.pi * 2
+        center_cam_ori_x = 0.1
+        center_cam_ori_y =  -0.52#np.random.uniform() * np.pi * (-0.3) - 0.1 #-1 *(np.pi -0.5) #
+        center_cam_ori_z = 0.1#np.random.uniform() * np.pi * 2
 
         center_cam_ori = tfm.euler.euler2mat(
-            center_cam_ori_z, center_cam_ori_y, center_cam_ori_x, "rzyx")
+            center_cam_ori_z, center_cam_ori_y, center_cam_ori_x, "szyx")
         dis = np.random.uniform() * 5 + 8
         # make the x axis of the camera pointing to the center
         center_cam_pos = -dis * np.expand_dims(center_cam_ori[:, 0], 1)
