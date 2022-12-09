@@ -48,7 +48,7 @@ client = airsim.VehicleClient()
 client.confirmConnection()
 
 camera_name = "0"
-object_name_ls = ["SM_ForkLift6"] #"SM_ForkLift3", "SM_ForkLift6", SM_AsphaltRoller3
+object_name_ls = ["SM_AsphaltRoller3", "SM_ForkLift6", "SM_ForkLift3"] #"SM_ForkLift3", "SM_ForkLift6", SM_AsphaltRoller3
 
 file_deli = '\\'
 
@@ -108,85 +108,100 @@ def generate_object_data(object_index):
     os.mkdir(save_folder_path + file_deli + 'pose')
     os.mkdir(save_folder_path + file_deli + 'mask')
 
+    initial_pose_set = False
     cnt = 0
     exit_flag = False
     shuffle_flag = True
 
-    camera_num = 50 #100
-    vehicle_num = 4 #10
-    index_list = np.array([x for x in range(camera_num * vehicle_num)])
+    camera_num = 5 #100 ## This represents different camera heights
+    # vehicle_num = 4 #10
+    vehicle_orientations = 36
+    closeness = 5
+    index_list = np.array([x for x in range(camera_num * vehicle_orientations * closeness)])
     if shuffle_flag:
         np.random.shuffle(index_list)
     base2center = np.array(
-        [[1., 0., 0., 18.], [0., 1., 0., 25.], [0., 0., 1., 0.5], [0., 0., 0., 1.]])
+        [[1., 0., 0., 18.], 
+        [0., 1., 0., 25.], 
+        [0., 0., 1., 0.5], 
+        [0., 0., 0., 1.]])
 
     # random cam
-    for i in range(camera_num):
+    for j in range(camera_num):
         if exit_flag:
             break
-        center_cam_ori_x = 0.1
-        center_cam_ori_y =  -0.52#np.random.uniform() * np.pi * (-0.3) - 0.1 #-1 *(np.pi -0.5) #
-        center_cam_ori_z = 0.1#np.random.uniform() * np.pi * 2
+        center_cam_ori_x = 0 
+        center_cam_ori_y =  -0.01 #np.random.uniform() * np.pi * (-0.3) - 0.1 #-1 *(np.pi -0.5) #
+        center_cam_ori_z = 0 #np.random.uniform() * np.pi * 2
 
         center_cam_ori = tfm.euler.euler2mat(
-            center_cam_ori_z, center_cam_ori_y, center_cam_ori_x, "szyx")
-        dis = np.random.uniform() * 5 + 8
-        # make the x axis of the camera pointing to the center
-        center_cam_pos = -dis * np.expand_dims(center_cam_ori[:, 0], 1)
-        center2cam = np.concatenate(
-            [np.concatenate([center_cam_ori, center_cam_pos], 1), [[0, 0, 0, 1]]], 0)
+            center_cam_ori_z, center_cam_ori_y, center_cam_ori_x, "szyx") #in NED coordinates
 
-        base2cam = base2center @ center2cam
-        camera_quat = tfm.quaternions.mat2quat(
-            base2cam[:3, :3]).tolist()  # [w, x, y, z]
-        camera_posi = base2cam[:3, 3].tolist()
-        # airsim.Quaternionr accepts [x, y, z, w]
-        airsim_camera_pose = airsim.Pose(airsim.Vector3r(camera_posi[0], camera_posi[1], camera_posi[2]),
-                                         airsim.Quaternionr(camera_quat[1], camera_quat[2], camera_quat[3], camera_quat[0]))
-        client.simSetCameraPose(camera_name, airsim_camera_pose)
-        print(f"Setting camera pose {i}: {base2cam}")
-        time.sleep(3)
-        actual_cam_pose = airsimPoseToMat(
-            client.simGetCameraInfo(camera_name).pose)
-        print(f"Actual camera pose {i}: {actual_cam_pose}")
-        # Need to re-calculate the center position because of the error in camera position
-        # The translation below only applys to specific object settings and randomization strategy
-        sin_pitch = actual_cam_pose[2][0]
-        cos_pitch = np.sqrt(1 - sin_pitch * sin_pitch)
-        dz = base2center[2][3] - actual_cam_pose[2][3]
-        dx = dz / sin_pitch * cos_pitch / cos_pitch * actual_cam_pose[0][0]
-        dy = dz / sin_pitch * cos_pitch / cos_pitch * actual_cam_pose[1][0]
-        actual_center_pos = [actual_cam_pose[0][3] + dx,
-                             actual_cam_pose[1][3] + dy, actual_cam_pose[2][3] + dz]
+        for k in range(9, 9 + closeness):
+            dis =  k #np.random.uniform() * 5 + 8
+            # make the x axis of the camera pointing to the center
 
-        for _ in range(vehicle_num):
-            x_displace = np.random.uniform() * 4
-            y_displace = np.random.uniform() * 4
-            rz = np.random.uniform() * np.pi * 2
-            # [w, x, y, z]
-            center_vehicle_ori = tfm.euler.euler2quat(
-                rz, 0, 0, "rzyx").tolist()
-            vehicle_posi = actual_center_pos
-            airsim_object_pose = airsim.Pose(airsim.Vector3r(vehicle_posi[0] + x_displace, vehicle_posi[1] + y_displace, vehicle_posi[2]),
-                                             airsim.Quaternionr(center_vehicle_ori[1], center_vehicle_ori[2], center_vehicle_ori[3], center_vehicle_ori[0]))
-            if not client.simSetObjectPose(object_name, airsim_object_pose):
-                print(
-                    "Failed to set vehicle pose, check if you set the object mobility to movable! Quit...")
-                exit_flag = True
-                break
-            time.sleep(1)
+            center_cam_pos = -dis * np.expand_dims(center_cam_ori[:, 0], 1)
+            center_cam_pos[-1] -= j
 
-            actual_obj_pose = airsimPoseToMat(
-                client.simGetObjectPose(object_name))
+            center2cam = np.concatenate(
+                [np.concatenate([center_cam_ori, center_cam_pos], 1), [[0, 0, 0, 1]]], 0)
+            
+
+            base2cam = base2center @ center2cam
+            camera_quat = tfm.quaternions.mat2quat(
+                base2cam[:3, :3]).tolist()  # [w, x, y, z]
+            camera_posi = base2cam[:3, 3].tolist()
+            # airsim.Quaternionr accepts [x, y, z, w]
+            airsim_camera_pose = airsim.Pose(airsim.Vector3r(camera_posi[0], camera_posi[1], camera_posi[2]),
+                                            airsim.Quaternionr(camera_quat[1], camera_quat[2], camera_quat[3], camera_quat[0]))
+            client.simSetCameraPose(camera_name, airsim_camera_pose)
+            print(f"Setting camera pose {j}: {base2cam}")
+            time.sleep(3)
             actual_cam_pose = airsimPoseToMat(
                 client.simGetCameraInfo(camera_name).pose)
+            print(f"Actual camera pose {j}: {actual_cam_pose}")
+            # Need to re-calculate the center position because of the error in camera position
+            # The translation below only applys to specific object settings and randomization strategy
+            sin_pitch = actual_cam_pose[2][0]
+            cos_pitch = np.sqrt(1 - sin_pitch * sin_pitch)
+            dz = base2center[2][3] - actual_cam_pose[2][3]
+            dx = dz / sin_pitch * cos_pitch / cos_pitch * actual_cam_pose[0][0]
+            dy = dz / sin_pitch * cos_pitch / cos_pitch * actual_cam_pose[1][0]
+            actual_center_pos = [actual_cam_pose[0][3] + dx,
+                                actual_cam_pose[1][3] + dy, actual_cam_pose[2][3] + dz]
+            print("actual_cen: \n",actual_center_pos )
 
-            extract_save_image(index_list[cnt], save_folder_path)
-            cam_wrt_obj = np.linalg.inv(actual_obj_pose) @ actual_cam_pose
-            np.savetxt(
-                f"{save_folder_path}{file_deli}pose{file_deli}{index_list[cnt]}.txt", cam_wrt_obj)
-            print(f"Save #{cnt} data with index {index_list[cnt]}\n")
-            cnt += 1
+            for i in range(vehicle_orientations):
+                x_displace = 0 # np.random.uniform() * 4
+                y_displace = 0 # np.random.uniform() * 4
+                rz = (i+1) *10 * np.pi /180. #np.random.uniform() * np.pi * 2
+                # [w, x, y, z]
+                center_vehicle_ori = tfm.euler.euler2quat(
+                    rz, 0, 0, "rzyx").tolist()
+                if not initial_pose_set: 
+                    vehicle_posi = actual_center_pos#why is the vehicle pos set to actual center pos
+                    initial_pose_set = not initial_pose_set
+                airsim_object_pose = airsim.Pose(airsim.Vector3r(vehicle_posi[0] + x_displace, vehicle_posi[1] + y_displace, vehicle_posi[2]),
+                                                airsim.Quaternionr(center_vehicle_ori[1], center_vehicle_ori[2], center_vehicle_ori[3], center_vehicle_ori[0]))
+                if not client.simSetObjectPose(object_name, airsim_object_pose):
+                    print(
+                        "Failed to set vehicle pose, check if you set the object mobility to movable! Quit...")
+                    exit_flag = True
+                    break
+                time.sleep(1)
+
+                actual_obj_pose = airsimPoseToMat(
+                    client.simGetObjectPose(object_name))
+                actual_cam_pose = airsimPoseToMat(
+                    client.simGetCameraInfo(camera_name).pose)
+
+                extract_save_image(index_list[cnt], save_folder_path)
+                cam_wrt_obj = np.linalg.inv(actual_obj_pose) @ actual_cam_pose
+                np.savetxt(
+                    f"{save_folder_path}{file_deli}pose{file_deli}{index_list[cnt]}.txt", cam_wrt_obj)
+                print(f"Save #{cnt} data with index {index_list[cnt]}\n")
+                cnt += 1
     origin_object_pose = airsim.Pose(airsim.Vector3r(-20, 10 * object_index, 0),
                                      airsim.Quaternionr(0, 0, 0, 1))
     client.simSetObjectPose(object_name, origin_object_pose)
