@@ -48,7 +48,7 @@ client = airsim.VehicleClient()
 client.confirmConnection()
 
 camera_name = "0"
-object_name_ls = ["SM_AsphaltRoller3", "SM_ForkLift6", "SM_ForkLift3"] #"SM_ForkLift3", "SM_ForkLift6", SM_AsphaltRoller3
+object_name_ls = ["SM_ForkLift_2"] #"SM_ForkLift3", "SM_ForkLift6", SM_AsphaltRoller3
 
 file_deli = '\\'
 
