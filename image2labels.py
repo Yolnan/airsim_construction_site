@@ -14,19 +14,21 @@ def points_format(points: list, extra: str):
     return " ".join(output)
     
 
-def save_countours(path: str, contours: list, img_width: float, img_height: float, extra: str):
+def save_contours(path: str, contours: list, img_width: float, img_height: float, extra: str):
     output = []
     for contour in contours:
         output.append(points_format(contour_to_percent_points(contour, img_width, img_height), extra))
     with open(path, "w") as f:
+        print(path)
         f.write("\n".join(output))
     
 
 
-directory_name = "sample"
+input_folder_name = "data/2023-02-23-03-16/0/mask"
+output_folder_name = "data/2023-02-23-03-16/0/label"
 
-for filename in os.listdir(r"./"+directory_name):
-    array_of_img = cv2.imread(directory_name + "/" + filename) # 3-channel image
+for filename in os.listdir(r"./"+input_folder_name):
+    array_of_img = cv2.imread(input_folder_name + "/" + filename) # 3-channel image
     W = array_of_img.shape[0]  #480
     H = array_of_img.shape[1]  #640
     array_of_img1 = cv2.cvtColor(array_of_img, cv2.COLOR_BGR2GRAY)
@@ -70,11 +72,11 @@ for filename in os.listdir(r"./"+directory_name):
     # plt.scatter(x = 1, y = 0)
     # plt.show()
     # plt.clf()
-    # save_countours(filename[:-4] + '.txt', contours, W, H, "0")
+    save_contours(output_folder_name + "/" + filename[:-4] + '.txt', contours, W, H, "0")
 
-    cv2.drawContours(array_of_img,contours,-1,(0,0,255),3)  
-    cv2.imshow("img", array_of_img)  
-    cv2.waitKey(0)  
+    # cv2.drawContours(array_of_img,contours,-1,(0,0,255),3)  
+    # cv2.imshow("img", array_of_img)  
+    # cv2.waitKey(0)  
 
     # print (len(contours))
     # plt.imshow(contours[0])
