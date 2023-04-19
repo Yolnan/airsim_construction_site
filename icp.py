@@ -23,8 +23,8 @@ def draw_registration_result(source, target, transformation):
 def convert_pose_to_euler(pose_path):
     df = pd.read_csv(pose_path, sep=" ")
     R = Rotation.from_matrix(df.iloc[0:3,0:3].to_numpy())
-    euler = R.as_euler('ZYX', degrees=True) # unreal seems to use +Z up, +Y forward, +X left (left handed coordinate system)
-    return euler
+    euler_angles = R.as_euler('zyx', degrees=True) # unreal seems to use +Z up, +Y forward, +X left (left handed coordinate system)
+    return euler_angles
 
 def depth_to_pointcloud(depth, mask, K):
     # extract camera intrinsics parameters
@@ -38,7 +38,7 @@ def depth_to_pointcloud(depth, mask, K):
     P_inv[0:2,0:3] = np.array([[1/fx, 0, -ppx*fy/(fx*fy)],
                                  [0, 1/fy, -ppy/fy]]) # assume skew is zero
     
-    pcd = o3d.geometry.PointCloud()
+    pointcloud = o3d.geometry.PointCloud()
     points = []
 
     for u in range(mask.shape[0]):
@@ -52,14 +52,12 @@ def depth_to_pointcloud(depth, mask, K):
                 pt = [z, -x, -y]
                 points.append(pt)   
     xyz = np.reshape(points, (len(points), 3))
-    pcd.points = o3d.utility.Vector3dVector(xyz)
-    return pcd
+    pointcloud.points = o3d.utility.Vector3dVector(xyz)
+    return pointcloud
 
 # fake camera matrix, ref: https://github.com/unrealcv/unrealcv/issues/14#issuecomment-487346581
-# image_width = 640
-# image_height = 480
-image_width = 256   # might have used data with wrong resolution
-image_height = 144 
+image_width = 640   
+image_height = 480 
 camera_fov = 90
 f = image_width /(2 * np.tan(camera_fov * np.pi / 360))
 
@@ -69,18 +67,23 @@ K = np.array([[f, 0, Cu],
 [0, f, Cv],
 [0, 0, 1 ]])
 
-pose_path = "./data/2023-02-23-03-16/0/pose/161.txt"
-pose = convert_pose_to_euler(pose_path)
+source_img_num = 0
+source_pose = convert_pose_to_euler(f"./data/2023-04-06-03-47/0/pose/{source_img_num}.txt")
+source_color = cv2.imread(f"./data/2023-04-06-03-47/0/rgb/{source_img_num}.png")
+source_depth = cv2.imread(f"./data/2023-04-06-03-47/0/depth/{source_img_num}.png")
+source_mask = cv2.imread(f"./data/2023-04-06-03-47/0/mask/{source_img_num}.png")
+source = depth_to_pointcloud(source_depth[:,:,0], source_mask[:,:,0], K) # airsim mask is 3 channel
 
-depth_path = "./data/2023-02-23-03-16/0/depth/161.png"
-depth = cv2.imread(depth_path)
+target_img_num = 49
+target_pose = convert_pose_to_euler(f"./data/2023-04-06-03-47/0/pose/{target_img_num}.txt")
+target_color = cv2.imread(f"./data/2023-04-06-03-47/0/rgb/{target_img_num}.png")
+target_depth = cv2.imread(f"./data/2023-04-06-03-47/0/depth/{target_img_num}.png")
+target_mask = cv2.imread(f"./data/2023-04-06-03-47/0/mask/{target_img_num}.png")
+target = depth_to_pointcloud(target_depth[:,:,0], target_mask[:,:,0], K) # airsim mask is 3 channel
 
-mask_path = "./data/2023-02-23-03-16/0/mask/161.png"
-mask = cv2.imread(mask_path)
+template_path = "./SM_Forklift.pcd"
+template_pc = o3d.io.read_point_cloud(template_path)
 
-source_pcd_path = "./SM_Forklift.pcd"
-source = o3d.io.read_point_cloud(source_pcd_path)
-target = depth_to_pointcloud(depth[:,:,0], mask[:,:,0], K) # airsim mask is 3 channel
 trans_init = np.eye(4)
 threshold = 0.02
 
