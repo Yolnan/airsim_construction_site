@@ -26,7 +26,7 @@ def getArrayFromAirsimImage(rgb, depth):
                            dtype="float32")
     # if rgb.height == 0:
     #     return -1, -1
-    # reshape array to 4 channel image array H X W X 4
+    # reshape array to 4 channel i mage array H X W X 4
     img_rgb = img1d.reshape(rgb.height, rgb.width, 3)
     img_rgb_filp = img_rgb.copy()
     img_depth = img1d_depth.reshape(depth.height,
@@ -48,7 +48,12 @@ client = airsim.VehicleClient()
 client.confirmConnection()
 
 camera_name = "0"
-object_name_ls = ["SM_ForkLift_2"] #"SM_ForkLift3", "SM_ForkLift6", SM_AsphaltRoller3
+object_name_ls = ["SM_ForkLift_2", 
+                  "SM_MERGED_GC_CAT_DP70_192", 
+                  "SM_MERGED_Toyota_forklift_11",
+                  "SM_MERGED_Forklift-Mitsubishi-FGC30N_8",
+                  "SM_MERGED_EmpilhadeiraMod_2",
+                  "SM_MERGED_Forklift_Sporty_5"] # Unreal ID Names not label names not 
 
 file_deli = '\\'
 
@@ -221,4 +226,4 @@ for object_id in range(len(object_name_ls)):
 for object_id in range(len(object_name_ls)):
     generate_object_data(object_id)
 
-embed()
+# embed()
