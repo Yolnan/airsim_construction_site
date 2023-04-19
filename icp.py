@@ -55,44 +55,47 @@ def depth_to_pointcloud(depth, mask, K):
     pointcloud.points = o3d.utility.Vector3dVector(xyz)
     return pointcloud
 
-# fake camera matrix, ref: https://github.com/unrealcv/unrealcv/issues/14#issuecomment-487346581
-image_width = 640   
-image_height = 480 
-camera_fov = 90
-f = image_width /(2 * np.tan(camera_fov * np.pi / 360))
 
-Cu = image_width/2
-Cv = image_height/2
-K = np.array([[f, 0, Cu],
-[0, f, Cv],
-[0, 0, 1 ]])
+if __name__ == "__main__":
+    # fake camera matrix, ref: https://github.com/unrealcv/unrealcv/issues/14#issuecomment-487346581
+    image_width = 640   
+    image_height = 480 
+    camera_fov = 90
+    f = image_width /(2 * np.tan(camera_fov * np.pi / 360))
 
-source_img_num = 0
-source_pose = convert_pose_to_euler(f"./data/2023-04-06-03-47/0/pose/{source_img_num}.txt")
-source_color = cv2.imread(f"./data/2023-04-06-03-47/0/rgb/{source_img_num}.png")
-source_depth = cv2.imread(f"./data/2023-04-06-03-47/0/depth/{source_img_num}.png")
-source_mask = cv2.imread(f"./data/2023-04-06-03-47/0/mask/{source_img_num}.png")
-source = depth_to_pointcloud(source_depth[:,:,0], source_mask[:,:,0], K) # airsim mask is 3 channel
+    Cu = image_width/2
+    Cv = image_height/2
+    K = np.array([[f, 0, Cu],
+    [0, f, Cv],
+    [0, 0, 1 ]])
 
-target_img_num = 49
-target_pose = convert_pose_to_euler(f"./data/2023-04-06-03-47/0/pose/{target_img_num}.txt")
-target_color = cv2.imread(f"./data/2023-04-06-03-47/0/rgb/{target_img_num}.png")
-target_depth = cv2.imread(f"./data/2023-04-06-03-47/0/depth/{target_img_num}.png")
-target_mask = cv2.imread(f"./data/2023-04-06-03-47/0/mask/{target_img_num}.png")
-target = depth_to_pointcloud(target_depth[:,:,0], target_mask[:,:,0], K) # airsim mask is 3 channel
+    parent_folder = "./data/forklift1_img900/0"
+    source_img_num = 0
+    source_pose = convert_pose_to_euler(parent_folder + "/" + f"pose/{source_img_num}.txt")
+    source_color = cv2.imread(parent_folder + "/" + f"rgb/{source_img_num}.png")
+    source_depth = cv2.imread(parent_folder + "/" + f"depth/{source_img_num}.png")
+    source_mask = cv2.imread(parent_folder + "/" + f"mask/{source_img_num}.png")
+    source = depth_to_pointcloud(source_depth[:,:,0], source_mask[:,:,0], K) # airsim mask is 3 channel
 
-template_path = "./SM_Forklift.pcd"
-template_pc = o3d.io.read_point_cloud(template_path)
+    target_img_num = 49
+    target_pose = convert_pose_to_euler(parent_folder + "/" + f"pose/{target_img_num}.txt")
+    target_color = cv2.imread(parent_folder + "/" + f"rgb/{target_img_num}.png")
+    target_depth = cv2.imread(parent_folder + "/" + f"depth/{target_img_num}.png")
+    target_mask = cv2.imread(parent_folder + "/" + f"mask/{target_img_num}.png")
+    target = depth_to_pointcloud(target_depth[:,:,0], target_mask[:,:,0], K) # airsim mask is 3 channel
 
-trans_init = np.eye(4)
-threshold = 0.02
+    template_path = "./SM_Forklift.pcd"
+    template_pc = o3d.io.read_point_cloud(template_path)
 
-reg_p2p = o3d.pipelines.registration.registration_icp(
-    source, target, threshold, trans_init,
-    o3d.pipelines.registration.TransformationEstimationPointToPoint())
-print(reg_p2p)
-print("Transformation is:")
-print(reg_p2p.transformation)
-o3d.visualization.draw_geometries([source, target])
-# o3d.visualization.draw_geometries([target])
-# draw_registration_result(source, target, reg_p2p.transformation)
+    trans_init = np.eye(4)
+    threshold = 0.02
+
+    reg_p2p = o3d.pipelines.registration.registration_icp(
+        source, target, threshold, trans_init,
+        o3d.pipelines.registration.TransformationEstimationPointToPoint())
+    print(reg_p2p)
+    print("Transformation is:")
+    print(reg_p2p.transformation)
+    o3d.visualization.draw_geometries([source, target])
+    # o3d.visualization.draw_geometries([target])
+    # draw_registration_result(source, target, reg_p2p.transformation)
