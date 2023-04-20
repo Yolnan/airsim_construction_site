@@ -98,8 +98,6 @@ def extract_save_image(cnt, save_folder_path):
 airsim.wait_key(
     'Press any key to start loop')
 
-# embed()
-
 
 def generate_object_data(object_index):
     print(
@@ -225,5 +223,3 @@ for object_id in range(len(object_name_ls)):
 
 for object_id in range(len(object_name_ls)):
     generate_object_data(object_id)
-
-# embed()
