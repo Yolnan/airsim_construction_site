@@ -2,7 +2,6 @@
 # https://github.com/Microsoft/AirSim/blob/master/docs/image_apis.md#computer-vision-mode
 # This is modified based on cv_mode.py
 
-from operator import index
 from random import shuffle
 import sys
 import airsim
@@ -11,14 +10,9 @@ import pprint
 import os
 import time
 from datetime import datetime
-import math
-import tempfile
-from IPython import embed
 import numpy as np
 import cv2
-import keyboard
 import transforms3d as tfm
-
 
 def getArrayFromAirsimImage(rgb, depth):
     img1d = np.frombuffer(rgb.image_data_uint8, dtype=np.uint8)
@@ -33,34 +27,12 @@ def getArrayFromAirsimImage(rgb, depth):
                                     depth.width)
     return img_rgb_filp, img_depth
 
-
 def airsimPoseToMat(pose):
     pos = [pose.position.x_val, pose.position.y_val, pose.position.z_val]
     ori = tfm.quaternions.quat2mat(
         [pose.orientation.w_val, pose.orientation.x_val, pose.orientation.y_val, pose.orientation.z_val])
     p = np.concatenate((ori, np.array([pos]).T), axis=1)
     return np.concatenate((p, np.array([[0, 0, 0, 1]])), axis=0)
-
-
-pp = pprint.PrettyPrinter(indent=4)
-
-client = airsim.VehicleClient()
-client.confirmConnection()
-
-camera_name = "0"
-object_name_ls = ["SM_ForkLift_2", 
-                  "SM_MERGED_GC_CAT_DP70_192", 
-                  "SM_MERGED_Toyota_forklift_11",
-                  "SM_MERGED_Forklift-Mitsubishi-FGC30N_8",
-                  "SM_MERGED_EmpilhadeiraMod_2",
-                  "SM_MERGED_Forklift_Sporty_5"] # Unreal ID Names not label names not 
-
-file_deli = '\\'
-
-time_str = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M")
-root_folder = os.path.abspath("data") + file_deli + time_str
-os.mkdir(root_folder)
-
 
 def extract_save_image(cnt, save_folder_path):
     infos = client.simGetImages([airsim.ImageRequest(camera_name, airsim.ImageType.DepthPlanar, True),
@@ -94,11 +66,6 @@ def extract_save_image(cnt, save_folder_path):
     cv2.imwrite(
         f"{save_folder_path}{file_deli}mask{file_deli}{cnt}.png", mask_img)
 
-
-airsim.wait_key(
-    'Press any key to start loop')
-
-
 def generate_object_data(object_index):
     print(
         f"Start to generate data for object: {object_name_ls[object_index]}")
@@ -116,8 +83,7 @@ def generate_object_data(object_index):
     exit_flag = False
     shuffle_flag = True
 
-    camera_num = 5 #100 ## This represents different camera heights
-    # vehicle_num = 4 #10
+    camera_num = 5 # This represents different camera heights
     vehicle_orientations = 36
     closeness = 5
     index_list = np.array([x for x in range(camera_num * vehicle_orientations * closeness)])
@@ -210,16 +176,38 @@ def generate_object_data(object_index):
     client.simSetObjectPose(object_name, origin_object_pose)
 
 
-print(f"First put all the vehicles away from center")
-for object_id in range(len(object_name_ls)):
-    object_name = object_name_ls[object_id]
-    airsim_object_pose = airsim.Pose(airsim.Vector3r(-20, 10 * object_id, 0),
-                                     airsim.Quaternionr(0, 0, 0, 1))
-    if not client.simSetObjectPose(object_name, airsim_object_pose):
-        print(
-            f"Failed to set vehicle pose, check if you set the object {object_name} mobility to movable! Quit...")
-        exit(1)
-    time.sleep(1)
+if __name__ == "__main__":
+    # airsim setup
+    pp = pprint.PrettyPrinter(indent=4)
+    client = airsim.VehicleClient()
+    client.confirmConnection()
+    camera_name = "0"
+    
+    object_name_ls = ["SM_ForkLift_2", 
+                    "SM_MERGED_GC_CAT_DP70_192", 
+                    "SM_MERGED_Toyota_forklift_11",
+                    "SM_MERGED_Forklift-Mitsubishi-FGC30N_8",
+                    "SM_MERGED_EmpilhadeiraMod_2",
+                    "SM_MERGED_Forklift_Sporty_5"] # Unreal ID, not label
 
-for object_id in range(len(object_name_ls)):
-    generate_object_data(object_id)
+    # create root folder
+    file_deli = '\\'
+    time_str = datetime.strftime(datetime.now(), "%Y-%m-%d-%H-%M")
+    root_folder = os.path.abspath("data") + file_deli + time_str
+    os.mkdir(root_folder)
+
+    airsim.wait_key('Press any key to start loop')
+
+    print(f"First put all the vehicles away from center")
+    for object_id in range(len(object_name_ls)):
+        object_name = object_name_ls[object_id]
+        airsim_object_pose = airsim.Pose(airsim.Vector3r(-20, 10 * object_id, 0),
+                                        airsim.Quaternionr(0, 0, 0, 1))
+        if not client.simSetObjectPose(object_name, airsim_object_pose):
+            print(
+                f"Failed to set vehicle pose, check if you set the object {object_name} mobility to movable! Quit...")
+            exit(1)
+        time.sleep(1)
+
+    for object_id in range(len(object_name_ls)):
+        generate_object_data(object_id)
