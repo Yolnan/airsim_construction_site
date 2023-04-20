@@ -13,6 +13,8 @@ from datetime import datetime
 import numpy as np
 import cv2
 import transforms3d as tfm
+import pandas as pd
+from matplotlib import pyplot as plt
 
 def getArrayFromAirsimImage(rgb, depth):
     img1d = np.frombuffer(rgb.image_data_uint8, dtype=np.uint8)
@@ -34,7 +36,7 @@ def airsimPoseToMat(pose):
     p = np.concatenate((ori, np.array([pos]).T), axis=1)
     return np.concatenate((p, np.array([[0, 0, 0, 1]])), axis=0)
 
-def extract_save_image(cnt, save_folder_path):
+def extract_save_image(cnt, save_folder_path, object_index):
     infos = client.simGetImages([airsim.ImageRequest(camera_name, airsim.ImageType.DepthPlanar, True),
                                 airsim.ImageRequest(
                                     camera_name, airsim.ImageType.Segmentation, False, False),
@@ -54,13 +56,9 @@ def extract_save_image(cnt, save_folder_path):
         f"{save_folder_path}{file_deli}depth{file_deli}{cnt}.png", img_depth.astype(np.uint16))
 
     img_seg, img_depth = getArrayFromAirsimImage(seg, depth)
-    # print("img_seg: ", img_seg.shape)
-    # [164,  41, 253] for roller, [242, 162, 90] for fork
-    label1 = np.array([164,  41, 253])
-    # label2 = np.array([242, 162, 90])
-    label2 = np.array([250, 20, 234])
-    mask = np.ma.getmaskarray(np.ma.masked_equal(
-        img_seg, label1)) | np.ma.getmaskarray(np.ma.masked_equal(img_seg, label2))
+    # plt.imshow(cv2.cvtColor(img_seg, cv2.COLOR_BGR2RGB))
+    # plt.show()
+    mask = np.ma.getmaskarray(np.ma.masked_equal(img_seg, seg_bgr[object_index]))
     mask_img = mask[:, :, 0] * img_seg[:, :, 0]
     mask_img = np.where(mask_img > 0, 255, mask_img)
     cv2.imwrite(
@@ -68,9 +66,9 @@ def extract_save_image(cnt, save_folder_path):
 
 def generate_object_data(object_index):
     print(
-        f"Start to generate data for object: {object_name_ls[object_index]}")
+        f"Start to generate data for object: {unreal_id_ls[object_index]}")
     # create folder
-    object_name = object_name_ls[object_index]
+    object_name = unreal_id_ls[object_index]
     save_folder_path = root_folder + f'{file_deli}{object_index}'
     os.mkdir(save_folder_path)
     os.mkdir(save_folder_path + file_deli + 'depth')
@@ -97,6 +95,8 @@ def generate_object_data(object_index):
 
     # random cam
     for j in range(camera_num):
+        if j>0:
+            break
         if exit_flag:
             break
         center_cam_ori_x = 0 
@@ -107,6 +107,8 @@ def generate_object_data(object_index):
             center_cam_ori_z, center_cam_ori_y, center_cam_ori_x, "szyx") #in NED coordinates
 
         for k in range(9, 9 + closeness):
+            if k > 9:
+                break
             dis =  k #np.random.uniform() * 5 + 8
             # make the x axis of the camera pointing to the center
 
@@ -142,6 +144,8 @@ def generate_object_data(object_index):
             print("actual_cen: \n",actual_center_pos )
 
             for i in range(vehicle_orientations):
+                if i >0:
+                    break
                 x_displace = 0 # np.random.uniform() * 4
                 y_displace = 0 # np.random.uniform() * 4
                 rz = (i+1) *10 * np.pi /180. #np.random.uniform() * np.pi * 2
@@ -165,7 +169,7 @@ def generate_object_data(object_index):
                 actual_cam_pose = airsimPoseToMat(
                     client.simGetCameraInfo(camera_name).pose)
 
-                extract_save_image(index_list[cnt], save_folder_path)
+                extract_save_image(index_list[cnt], save_folder_path, object_index)
                 cam_wrt_obj = np.linalg.inv(actual_obj_pose) @ actual_cam_pose
                 np.savetxt(
                     f"{save_folder_path}{file_deli}pose{file_deli}{index_list[cnt]}.txt", cam_wrt_obj)
@@ -182,13 +186,28 @@ if __name__ == "__main__":
     client = airsim.VehicleClient()
     client.confirmConnection()
     camera_name = "0"
-    
-    object_name_ls = ["SM_ForkLift_2", 
+    unreal_id_ls = ["SM_Forklift_2", 
                     "SM_MERGED_GC_CAT_DP70_192", 
                     "SM_MERGED_Toyota_forklift_11",
                     "SM_MERGED_Forklift-Mitsubishi-FGC30N_8",
                     "SM_MERGED_EmpilhadeiraMod_2",
-                    "SM_MERGED_Forklift_Sporty_5"] # Unreal ID, not label
+                    "SM_MERGED_Forklift_Sporty_5"] # Unreal ID Name, not label
+    
+    # create convert seg_rgbs.txt to list, from: https://microsoft.github.io/AirSim/seg_rgbs.txt
+    # df = pd.read_csv("./seg_rgbs.txt", delimiter="\t", header=None)
+    # seg_bgr = []
+    # for ind in range(len(df.index)):
+    #     rgb_string = df.iloc[ind, 1]
+    #     rgb_string = rgb_string.replace("[", "")
+    #     rgb_string = rgb_string.replace("]", "")
+    #     rgb_label = np.fromstring(rgb_string, dtype=np.uint8, sep=",")
+    #     seg_bgr.append(np.flip(rgb_label))
+    seg_bgr = [np.array([250, 20, 234]), 
+               np.array([109, 153, 222]), 
+               np.array([30, 161, 114]),
+               np.array([84, 95, 31]),
+               np.array([249, 186, 224]),
+               np.array([181, 109, 101])]   # hardcoded segmentation color, setting colorID seems to be broken in AirSim, always returns -1
 
     # create root folder
     file_deli = '\\'
@@ -199,9 +218,9 @@ if __name__ == "__main__":
     airsim.wait_key('Press any key to start loop')
 
     print(f"First put all the vehicles away from center")
-    for object_id in range(len(object_name_ls)):
-        object_name = object_name_ls[object_id]
-        airsim_object_pose = airsim.Pose(airsim.Vector3r(-20, 10 * object_id, 0),
+    for obj_ind in range(len(unreal_id_ls)):
+        object_name = unreal_id_ls[obj_ind]
+        airsim_object_pose = airsim.Pose(airsim.Vector3r(-20, 10 * obj_ind, 0),
                                         airsim.Quaternionr(0, 0, 0, 1))
         if not client.simSetObjectPose(object_name, airsim_object_pose):
             print(
@@ -209,5 +228,5 @@ if __name__ == "__main__":
             exit(1)
         time.sleep(1)
 
-    for object_id in range(len(object_name_ls)):
-        generate_object_data(object_id)
+    for obj_ind in range(len(unreal_id_ls)):
+        generate_object_data(obj_ind)
