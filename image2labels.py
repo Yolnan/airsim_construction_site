@@ -38,7 +38,7 @@ def pose_to_class_id(euler_angles):
 
 
 if __name__ == "__main__":
-    parent_folder = "./data/forklift4_img3600"
+    parent_folder = "./data/forklift1_img900"
     class_id_list = next(os.walk(parent_folder))[1]
     preview_labels = True  # False: save labels, True: preview labels by viewing contours of mask
     classname_key = [str(x) for x in range(4)]
@@ -48,6 +48,8 @@ if __name__ == "__main__":
         mask_folder = parent_folder + f"/{class_id}/mask"
         pose_folder = parent_folder + f"/{class_id}/pose"
         label_folder = parent_folder + f"/{class_id}/label"
+        if not os.path.exists(label_folder) and preview_labels is False:
+            os.makedirs(label_folder)
 
         for filename in os.listdir(r"./"+mask_folder):
             array_of_img = cv2.imread(mask_folder + "/" + filename) # 3-channel image
@@ -85,14 +87,15 @@ if __name__ == "__main__":
             contours, hierarchy = cv2.findContours(im_out1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
             # determine class_id for labeling (rear, left, right, front view)
-            euler_angles = convert_pose_to_euler(pose_folder + "/" + filename[:-4] + ".txt")
+            euler_angles = convert_pose_to_euler(pose_folder + "/" + os.path.splitext(filename)[0] + ".txt")
             label_class_id = pose_to_class_id(euler_angles)
 
             # save or visualize mask labels
             if preview_labels is False:
-                save_contours(label_folder + "/" + filename[:-4] + ".txt", contours, W, H, label_class_id)
+                save_contours(label_folder + "/" + os.path.splitext(filename)[0] + ".txt", contours, W, H, label_class_id)
             else:
                 cv2.drawContours(array_of_img,contours,-1,(0,0,255),3)  
+                print("save to: " + label_folder + "/" + os.path.splitext(filename)[0] + ".txt")
                 print("view: " + classname_dict[label_class_id])
                 cv2.imshow("img", array_of_img)  
                 cv2.waitKey(0) 
