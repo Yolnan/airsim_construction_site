@@ -6,12 +6,12 @@ import shutil
 def copy_paste_rename(filenames, origin_dir, target_dir, class_id):
         for file in filenames:
             origin = origin_dir + "/"+ file
-            target = target_dir + "/" + class_id + "_"  + file
+            target = target_dir + "/" + str(class_id) + "_"  + file
             shutil.copy(origin, target)
 
 
 if __name__ == "__main__":
-    parent_folder = "./data/forklift1_img900"
+    parent_folder = "./data/forklift6_img360"
     class_id_list = next(os.walk(parent_folder))[1]
     split = [70, 20]   # train, val percentages; test = 100-train-val
 
