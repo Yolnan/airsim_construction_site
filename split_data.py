@@ -12,15 +12,15 @@ def copy_paste_rename(filenames, origin_dir, target_dir, class_id):
 
 if __name__ == "__main__":
     parent_folder = "./data/forklift6_img360"
-    class_id_list = next(os.walk(parent_folder))[1]
+    class_id_list = next(os.walk(parent_folder))[1] # alternatively provide list of strings for class_id ex: ["0", "1"]
     split = [70, 20]   # train, val percentages; test = 100-train-val
 
     # create directories
-    if not os.path.exists("./train"):
+    if not os.path.exists("./train") and sum(split) > 0:
         os.makedirs("./train/images")
         os.makedirs("./train/labels")
 
-    if not os.path.exists("./val"):
+    if not os.path.exists("./val") and sum(split) > 0:
         os.makedirs("./val/images")
         os.makedirs("./val/labels")
 
